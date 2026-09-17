@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drive Attendance</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f6f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+    .card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 90%; max-width: 400px; text-align: center; }
+    h2 { color: #003366; margin-top: 0; }
+    .info { text-align: left; background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #333; }
+    .btn { background: #003366; color: white; border: none; padding: 14px; width: 100%; border-radius: 4px; font-size: 15px; font-weight: bold; cursor: pointer; }
+    .msg { margin-top: 15px; font-size: 14px; font-weight: bold; }
+    .success { color: #28a745; }
+    .error { color: #dc3545; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>TATA ELECTRONICS</h2>
+  <div class="info">
+    <p><b>Candidate:</b> <span id="candName">Loading...</span></p>
+    <p><b>Venue:</b> <span id="venueName">Loading...</span></p>
+  </div>
+  <button class="btn" id="markBtn" onclick="submitAttendance()">MARK ATTENDANCE</button>
+  <div class="msg" id="statusMsg"></div>
+</div>
+
+<script>
+  // STEP A: REPLACE THIS URL WITH YOUR GOOGLE APPS SCRIPT WEB APP URL LATER
+  const APPS_SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const row = urlParams.get('row');
+  document.getElementById('candName').innerText = urlParams.get('name') || "Candidate";
+  document.getElementById('venueName').innerText = urlParams.get('loc') || "Assigned Venue";
+
+  function submitAttendance() {
+    const btn = document.getElementById('markBtn');
+    const statusMsg = document.getElementById('statusMsg');
+
+    if (!navigator.geolocation) {
+      statusMsg.className = "msg error";
+      statusMsg.innerText = "Location tracking is not supported by your browser.";
+      return;
+    }
+
+    btn.style.display = 'none';
+    statusMsg.className = "msg";
+    statusMsg.innerText = "Accessing GPS Location...";
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        statusMsg.innerText = "Submitting Attendance...";
+        const payload = {
+          row: row,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        };
+
+        fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        .then(() => {
+          statusMsg.className = "msg success";
+          statusMsg.innerText = "Your response has been submitted. Thanks!";
+        })
+        .catch(() => {
+          btn.style.display = 'block';
+          statusMsg.className = "msg error";
+          statusMsg.innerText = "Error submitting data. Please try again.";
+        });
+      },
+      (error) => {
+        btn.style.display = 'block';
+        statusMsg.className = "msg error";
+        statusMsg.innerText = "Please ALLOW location access to mark attendance.";
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+</script>
+
+</body>
+</html>
